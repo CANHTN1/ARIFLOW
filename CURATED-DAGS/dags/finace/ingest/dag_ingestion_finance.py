@@ -145,5 +145,4 @@ with DAG(
     # Final flow
     start_log_task >> task_groups >> end_log_task
 
-    #canh test
 
