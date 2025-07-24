@@ -1,0 +1,54 @@
+tables:
+  bod_overall_report_db:
+    number: 1
+    jdbc_conn_id: jdbc-sybaseiq-ods
+    source_table: odsuser.bod_overall_report_db
+    flag_job: BJ_KTC_BOD_OVERALL_D
+    flag_conn_id: jdbc-sybase-ase
+    metastore_table: hive.finance.bod_overall_report_db
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    repartition_num: '1'
+    query: |
+      SELECT
+        cob_dt,
+        item_id,
+        item_nm,
+        heading,
+        item_order, 
+        report_type, 
+        plan_flag,
+        plan_value_12m,
+        avg_plan_value,
+        value,
+        adj_value,
+        final_value,
+        mtd_value,
+        mtd_adj_value,
+        mtd_final_value,
+        avg_value_m,
+        ytd_value,
+        ytd_adj_value,
+        ytd_final_value,
+        avg_value_y,
+        prv_day_value,
+        prv_day_adj_value,
+        prv_day_final_value,
+        prv_mth_value,
+        prv_mth_adj_value,
+        prv_mth_final_value,
+        prv_yr_value,
+        prv_yr_adj_value,
+        prv_yr_final_value,
+        prv_mth_mtd_value,
+        prv_mth_mtd_adj_value,
+        prv_mth_mtd_final_value,
+        prv_mth_avg_value_m,
+        prv_yr_ytd_value,
+        prv_yr_ytd_adj_value,
+        prv_yr_ytd_final_value,
+        prv_yr_avg_value_y
+      FROM
+        odsuser.bod_overall_report_db
+      WHERE
+        cob_dt = '{{ cob_dt }}'

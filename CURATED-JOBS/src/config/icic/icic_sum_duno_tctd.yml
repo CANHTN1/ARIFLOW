@@ -1,0 +1,54 @@
+sources:
+  t_query_info:
+    table: icic.t_query_info
+    poke_interval: 600  # Time in seconds to wait between checks
+    timeout: 21600      # Maximum time to wait for the query to succeed
+
+target:
+  table: hive.icic.duno_tctd
+  write_hist_table: '0'  # If '1', write history; '0' means no history
+  native_key: ['msphieu', 'cob_dt']  # Keys for native storage
+  save_mode: 'overwrite'  # Save mode for writing data
+  save_format: 'parquet'  # Format of the saved data
+  repartition_num: '1'     # Number of partitions to use
+
+query:
+  init_sql_duno_tctd: |
+    CREATE TABLE IF NOT EXISTS hive.icic.duno_tctd (
+      msphieu string,
+      cob_dt date, 
+      mst string,
+      sum_duno_vnd bigint,
+      sum_duno_usd bigint,
+      change_type string   
+    )
+    USING iceberg
+    PARTITIONED BY (cob_dt);
+
+  select_sql: |
+    SELECT 
+      ttphaply.msphieu,
+      ttphaply.mst,
+      CAST(ctvay.cob_dt AS date) AS cob_dt,
+      SUM(CAST(duno_vnd AS int)) AS sum_duno_vnd,
+      SUM(CAST(ctvay.duno_usd AS int)) AS sum_duno_usd
+    FROM icic.parsed_ttphaply_partitioned ttphaply
+    JOIN icic.partitioned_qhtd_ctloaivay_v2 ctvay 
+      ON ttphaply.msphieu = ctvay.msphieu 
+      AND ttphaply.cob_dt = ctvay.cob_dt 
+    WHERE 
+      1=1
+      AND ttphaply.cob_dt = '{{cob_dt}}'
+      AND dkkd != '' 
+    GROUP BY 
+      ttphaply.msphieu,
+      ttphaply.mst,
+      CAST(ctvay.cob_dt AS date);
+
+columns:
+  - name: msphieu
+  - name: mst
+  - name: cob_dt
+  - name: sum_duno_vnd
+  - name: sum_duno_usd
+  - name: change_type  # Added change_type for completeness

@@ -1,0 +1,154 @@
+tables:
+  NII_CARD_RPT:
+    number: 1
+    jdbc_conn_id: jdbc-sybaseiq-ods
+    table: edw_dtm.depst_dtls_fact
+    metastore_table: hive.common_dtm.nii_card_rpt
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    repartition_num: '1'
+    query: |
+      SELECT
+        card_id,
+        cif_no,
+        cust_name,
+        acct_no,
+        branch_cd_acct,
+        branch_cd_crdid,
+        man_user_ad,
+        card_no,
+        card_name,
+        limit_amt,
+        card_bal_dly,
+        mtd_avg_card_bal,
+        ytd_avg_card_bal,
+        intrst_amt,
+        ftp_rate,
+        nii,
+        intrst_amt_dly,
+        ftp_rate_dly,
+        nii_incas_dly,
+        mtd_intrst_amt,
+        mtd_ftp_rate,
+        mtd_nii_incas,
+        ytd_nii_incas,
+        cob_dt,
+        updtd_dtm
+      FROM 
+        odsuser.nii_card_rpt
+      WHERE
+        cob_dt = '{{ cob_dt }}'
+
+  NII_CARD_RPT_ALL_DLY:
+    number: 2
+    jdbc_conn_id: jdbc-sybaseiq-ods
+    table: edw_dtm.depst_dtls_fact
+    metastore_table: hive.common_dtm.nii_card_rpt_all_dly
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    repartition_num: '1'
+    query: |
+      SELECT
+        card_id,
+        cif_no,
+        cust_name,
+        acct_no,
+        branch_cd_acct,
+        branch_cd_crdid,
+        man_user_ad,
+        card_no,
+        card_name,
+        limit_amt,
+        card_bal,
+        mtd_card_bal,
+        ytd_card_bal,
+        intrst_amt_dly,
+        ftp_rate_dly,
+        nii_incas_dly,
+        mtd_intrst_amt,
+        mtd_ftp_rate,
+        mtd_nii_incas,
+        ytd_nii_incas,
+        cob_dt,
+        updtd_dtm
+      FROM
+        odsuser.nii_card_rpt_all_dly
+      WHERE
+        cob_dt = '{{ cob_dt }}'
+
+  NII_CARD_RPT_DLY:
+    number: 3
+    jdbc_conn_id: jdbc-sybaseiq-ods
+    table: edw_dtm.depst_dtls_fact
+    metastore_table: hive.common_dtm.nii_card_rpt_dly
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    repartition_num: '1'
+    query: |
+      SELECT
+        card_id,
+        cif_no,
+        cust_name,
+        acct_no,
+        branch_cd_acct,
+        branch_cd_crdid,
+        man_user_ad,
+        card_no,
+        card_name,
+        limit_amt,
+        card_bal,
+        cob_dt,
+        updtd_dtm,
+        intrst_amt_dly,
+        ftp_rate_dly,
+        nii_dly
+      FROM
+        odsuser.nii_card_rpt_dly
+      WHERE
+        cob_dt = '{{ cob_dt }}'
+
+  NII_CARD_INTRST_INCAS_DLY:
+    number: 4
+    jdbc_conn_id: jdbc-sybaseiq-ods
+    table: edw_dtm.depst_dtls_fact
+    metastore_table: hive.common_dtm.nii_card_intrst_incas_dly
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    repartition_num: '1'
+    query: |
+      SELECT
+        acct_no,
+        card_id,
+        rate,
+        intrst_amt,
+        cob_dt,
+        updtd_dtm,
+        ftp_rate,
+        nii
+      FROM
+        odsuser.nii_card_intrst_incas_dly
+      WHERE
+        cob_dt = '{{ cob_dt }}'
+
+  NII_CARD_RPT_SUMMY:
+    number: 5
+    jdbc_conn_id: jdbc-sybaseiq-ods
+    table: edw_dtm.depst_dtls_fact
+    metastore_table: hive.common_dtm.nii_card_rpt_summy
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    repartition_num: '1'
+    query: |
+      SELECT
+        acct_no,
+        branch_cd_acct,
+        dept_cd_acct,
+        card_bal,
+        prev_day_card_bal,
+        prev_mnth_card_bal,
+        cob_dt,
+        updtd_dtm
+      FROM
+        odsuser.nii_card_rpt_summy
+      WHERE
+        cob_dt = '{{ cob_dt }}'
