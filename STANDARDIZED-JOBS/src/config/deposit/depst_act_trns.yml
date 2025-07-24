@@ -1,0 +1,57 @@
+spark:
+  job_name: std_depst_act_trns
+target:
+  table_name: hive.std.depst_act_trns
+  preload: 0
+  write_mode: overwrite
+  query_sql: |
+    SELECT 
+      TO_DATE('{{ cob_dt }}', 'yyyy-MM-dd') AS cob_dt,
+      CAST(a.cid AS long) AS act_nbr,
+      CAST(a.acn AS long) AS cus_cif_nbr,
+      a.crcd AS currency_cd,
+      CAST(a.bal AS decimal(19,2)) AS ldgr_bal_amt,
+      CAST(a.eodbal AS decimal(19,2)) AS eod_ldgr_bal_amt,
+      CAST(a.balavl AS decimal(19,2)) AS avail_bal_amt,
+      CAST(a.cntcr AS int) AS credit_trns_cnt,
+      CAST(a.cntdr AS int) AS debit_trns_cnt,
+      CAST(a.acr AS decimal(19,2)) AS acr_intrst_amt,
+      CAST(a.daa AS decimal(19,2)) AS dly_acr_intrst_amt,
+      TO_DATE(a.fmld, 'dd/MM/yyyy') AS last_maintaince_dt,
+      TO_DATE(a.tld, 'dd/MM/yyyy') AS last_transaction_dt,
+      CAST(a.lcamt AS decimal(19,2)) AS last_credit_amt,
+      TO_DATE(a.lcdt, 'dd/MM/yyyy') AS last_credit_dt,
+      TO_DATE(a.odld, 'dd/MM/yyyy') AS last_ovrdrft_dt,
+      CAST(a.odo AS int) AS ovrdrft_opt,
+      CAST(a.odlim AS decimal(19,2)) AS ovrdrft_limit_amt,
+      CAST(a.ldamt AS decimal(19,2)) AS last_debit_amt,
+      TO_DATE(a.lddt, 'dd/MM/yyyy') AS last_debit_dt,
+      TO_DATE(a.ccld, 'dd/MM/yyyy') AS last_contact_dt
+    FROM profile.prf_dep a
+    WHERE a.cob_dt = '{{ cob_dt }}'  
+  created_sql: |
+    CREATE TABLE hive.std.depst_act_trns (
+      cob_dt date COMMENT 'Date of data, Source: cob_dt',
+      act_nbr long COMMENT 'Account number, Source: cid',
+      cus_cif_nbr long COMMENT 'Customer CIF, Source: acn',
+      currency_cd string COMMENT 'Currency, Source: crcd',
+      ldgr_bal_amt decimal(19,2) COMMENT 'Ledger balance amount, Source: bal',
+      eod_ldgr_bal_amt decimal(19,2) COMMENT 'End of day balance amount, Source: eodbal',
+      avail_bal_amt decimal(19,2) COMMENT 'Available balance amount, Source: balavl',
+      credit_trns_cnt int COMMENT 'Credit transaction counter, Source: cntcr',
+      debit_trns_cnt int COMMENT 'Debit transaction counter, Source: cntdr',
+      acr_intrst_amt decimal(19,2) COMMENT 'Lãi cộng dồn, Source: acr',
+      dly_acr_intrst_amt decimal(19,2) COMMENT 'Lãi cộng dồn ngày, Source: daa',
+      last_maintaince_dt date COMMENT 'Ngày cập nhật gần nhất, Source: fmld',
+      last_transaction_dt date COMMENT 'Last transaction date, Source: tld',
+      last_credit_amt decimal(19,2) COMMENT 'Last credit amount, Source: lcamt',
+      last_credit_dt date COMMENT 'Last credit date, Source: lcdt',
+      last_ovrdrft_dt date COMMENT 'Last overdraft date, Source: odld',
+      ovrdrft_opt int COMMENT 'Overdraft option, Source: odo',
+      ovrdrft_limit_amt decimal(19,2) COMMENT 'Overdraft limit amount, Source: odlim',
+      last_debit_amt decimal(19,2) COMMENT 'Last debit amount, Source: ldamt',
+      last_debit_dt date COMMENT 'Last debit date, Source: lddt',
+      last_contact_dt date COMMENT 'Last contact date, Source: ccld'
+    )
+    USING iceberg
+    PARTITIONED BY (days(cob_dt))

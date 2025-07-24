@@ -1,0 +1,36 @@
+params:
+  cob_dt: "{{ cob_dt }}"
+  cob_dt_next: "{{ cob_dt_next }}"
+  cob_dt_prev: "{{ cob_dt_prev }}"
+  cob_dt_nodash: "{{ cob_dt_nodash }}"
+  cob_dt_next_nodash: "{{ cob_dt_next_nodash }}"
+  cob_dt_prev_nodash: "{{ cob_dt_prev_nodash }}"
+
+tables:
+  dim_department_ps:
+    schema: hrdashboard
+    hdfs_dir: "/datalake/curated/hr360/dim_department_ps-f4cb1e2d971a441992b4d8b6cace33d7/data/cob_dt=2025-03-10"
+    table: dim_department_v1
+    columns: 
+      - cob_dt
+      - ho_branch
+      - ho_branchho_transaction
+      - setid
+      - unit_id
+      - unitid
+      - unitname
+      - division_id
+      - division_name
+      - center_id
+      - center_name
+      - deptid
+      - dept_code
+      - deptname
+      - area
+      - province_city
+      - status
+      - company
+      - setid_location
+      - deptid_wfp
+      - deptname_wfp
+    filetype: parquet

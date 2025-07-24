@@ -1,0 +1,409 @@
+tables:
+  insert_dim_salary_empl:
+    check_point: 1
+    target_table: hive.dtm_hr360.dim_salary_empl
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    query: |
+      SELECT
+          c.emplid,
+          c.empl_rcd,
+          c.effdt,
+          c.effseq,
+          c.comp_effseq,
+          c.comp_ratecd,
+          c.convert_comprt,
+          c.currency_cd,
+          CASE 
+              WHEN convert_comprt BETWEEN 0 AND 10000000 THEN 1
+              WHEN convert_comprt BETWEEN 10000001 AND 20000000 THEN 2
+              WHEN convert_comprt BETWEEN 20000001 AND 30000000 THEN 3
+              WHEN convert_comprt BETWEEN 30000001 AND 40000000 THEN 4
+              WHEN convert_comprt BETWEEN 40000001 AND 50000000 THEN 5
+              WHEN convert_comprt > 50000000 THEN 6
+          END as salary_band,
+          '{{ report_dt }}' as report_date
+      FROM peoplesoft.hrm_ps_job a
+      JOIN peoplesoft.hrm_ps_compensation c
+      ON a.emplid = c.emplid 
+         AND a.cob_dt = c.cob_dt 
+         AND a.empl_rcd = c.empl_rcd 
+         AND a.effdt = c.effdt 
+         AND a.effseq = c.effseq 
+      WHERE a.job_indicator = 'P' 
+        AND a.company = 'VTB' 
+        AND per_org = 'EMP' 
+        AND a.effdt = (
+          SELECT MAX(b.effdt) 
+          FROM peoplesoft.hrm_ps_job b 
+          WHERE a.emplid = b.emplid 
+            AND a.cob_dt = b.cob_dt 
+            AND b.job_indicator = 'P' 
+            AND b.effdt <= CAST('{{ report_dt }}' AS date)
+        )
+        AND a.effseq = (
+          SELECT MAX(b1.effseq) 
+          FROM peoplesoft.hrm_ps_job b1 
+          WHERE a.emplid = b1.emplid 
+            AND a.cob_dt = b1.cob_dt 
+            AND b1.job_indicator = 'P' 
+            AND a.effdt = b1.effdt
+        ) 
+        AND a.empl_rcd = (
+          SELECT MAX(b1.empl_rcd) 
+          FROM peoplesoft.hrm_ps_job b1 
+          WHERE a.emplid = b1.emplid 
+            AND a.cob_dt = b1.cob_dt 
+            AND b1.job_indicator = 'P' 
+            AND a.effdt = b1.effdt
+        ) 
+        AND comp_ratecd LIKE 'LC%'
+        AND a.cob_dt = c.cob_dt
+        AND a.cob_dt = '{{ cob_dt }}'
+
+  insert_dim_salary_cwr:
+    check_point: 2
+    target_table: hive.dtm_hr360.dim_salary_cwr
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    query: |
+      SELECT
+          c.emplid,
+          c.empl_rcd,
+          c.effdt,
+          c.effseq,
+          c.comp_effseq,
+          c.comp_ratecd,
+          c.convert_comprt,
+          a.currency_cd,
+          a.`action`,
+          CASE 
+              WHEN c.convert_comprt BETWEEN 0 AND 10000000 THEN 1
+              WHEN c.convert_comprt BETWEEN 10000001 AND 20000000 THEN 2
+              WHEN c.convert_comprt BETWEEN 20000001 AND 30000000 THEN 3
+              WHEN c.convert_comprt BETWEEN 30000001 AND 40000000 THEN 4
+              WHEN c.convert_comprt BETWEEN 40000001 AND 50000000 THEN 5
+              WHEN c.convert_comprt > 50000000 THEN 6
+          END as salary_band,
+          '{{ report_dt }}' as report_date        
+      FROM peoplesoft.hrm_ps_job a
+      JOIN peoplesoft.hrm_ps_compensation c
+      ON a.emplid = c.emplid 
+         AND a.cob_dt = c.cob_dt 
+         AND a.empl_rcd = c.empl_rcd 
+         AND a.effdt = c.effdt 
+         AND a.effseq = c.effseq 
+      WHERE a.job_indicator = 'P' 
+        AND a.company = 'VTB' 
+        AND per_org = 'CWR'
+        AND a.effdt = (
+          SELECT MAX(b.effdt) 
+          FROM peoplesoft.hrm_ps_job b 
+          WHERE a.emplid = b.emplid 
+            AND a.cob_dt = b.cob_dt 
+            AND a.empl_rcd = b.empl_rcd 
+            AND CAST(b.effdt AS string) <= '{{ report_dt }}'
+        )
+        AND a.effseq = (
+          SELECT MAX(b1.effseq) 
+          FROM peoplesoft.hrm_ps_job b1 
+          WHERE a.emplid = b1.emplid 
+            AND a.cob_dt = b1.cob_dt  
+            AND a.empl_rcd = b1.empl_rcd 
+            AND a.effdt = b1.effdt
+        )
+        AND (comp_ratecd LIKE 'LC%' OR comp_ratecd LIKE 'LKG%' OR comp_ratecd LIKE 'LDT%')
+        AND a.cob_dt = c.cob_dt
+        AND a.cob_dt = '{{ cob_dt }}'
+        AND hr_status = 'A'
+
+  insert_dim_ps_job_dsnv_daily_emp:
+    check_point: 3
+    target_table: hive.dtm_hr360.dim_ps_job_dsnv_daily_emp
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    query: |
+      SELECT 
+          b.emplid,
+          b.deptid,
+          b.ibsy_officer_cd,
+          b.jobcode,
+          b.job_entry_dt,
+          b.dept_entry_dt,
+          b.hire_dt,
+          b.Last_Hire_Dt,
+          b.termination_dt,
+          b.effdt,
+          b.empl_rcd,
+          b.effseq,
+          b.contract_num,
+          b.action,
+          b.action_reason,
+          b.hr_status,
+          b.empl_status,
+          b.per_org,
+          b.full_part_time,
+          b.company,
+          b.setid_jobcode,
+          b.business_unit,
+          CASE
+              WHEN ((b.HIRE_DT BETWEEN SUBSTR('{{ report_dt }}',1,8) || '01' AND '{{ report_dt }}') 
+                     OR (b.LAST_HIRE_DT BETWEEN SUBSTR('{{ report_dt }}',1,8) || '01' AND '{{ report_dt }}')) THEN '1'
+              ELSE '0'
+          END as new_hires,
+          '{{ report_dt }}' as report_date        
+      FROM peoplesoft.hrm_ps_job b
+      WHERE b.job_indicator = 'P'
+        AND b.company = 'VTB' 
+        AND b.setid_jobcode IN ('CN', 'CNTT', 'QLTM', 'SGD', 'TRG', 'TSC', 'TTT')
+        AND per_org = 'EMP'
+        AND b.cob_dt = '{{ cob_dt }}'
+        AND b.effdt = (
+          SELECT MAX(b1.effdt)
+          FROM peoplesoft.hrm_ps_job b1
+          WHERE b.emplid = b1.emplid
+            AND b.cob_dt = b1.cob_dt
+            AND b.empl_rcd = b1.empl_rcd
+            AND CAST(b1.effdt AS string) <= '{{ report_dt }}'
+        )
+        AND b.effseq = (
+          SELECT MAX(b2.effseq)
+          FROM peoplesoft.hrm_ps_job b2
+          WHERE b.emplid = b2.emplid
+            AND b.cob_dt = b2.cob_dt
+            AND b.empl_rcd = b2.empl_rcd
+            AND b2.effdt = b.effdt
+        )
+
+  insert_dim_ps_job_dsnv_daily_cwr:
+    check_point: 5
+    target_table: hive.dtm_hr360.dim_ps_job_dsnv_daily_cwr
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    query: |
+      SELECT 
+          b.emplid,
+          b.deptid,
+          b.ibsy_officer_cd,
+          b.jobcode,
+          b.job_entry_dt,
+          b.dept_entry_dt,
+          b.hire_dt,
+          b.Last_Hire_Dt,
+          b.termination_dt,
+          b.effdt,
+          b.empl_rcd,
+          b.effseq,
+          b.contract_num,
+          b.action,
+          b.action_reason,
+          b.hr_status,
+          b.empl_status,
+          b.per_org,
+          b.full_part_time,
+          b.company,
+          b.setid_jobcode,
+          b.business_unit,
+          CASE
+              WHEN ((b.HIRE_DT BETWEEN SUBSTR('{{ report_dt }}',1,8) || '01' AND '{{ report_dt }}') 
+                     OR (b.LAST_HIRE_DT BETWEEN SUBSTR('{{ report_dt }}',1,8) || '01' AND '{{ report_dt }}')) THEN '1'
+              ELSE '0'
+          END as new_hires,
+          '{{ report_dt }}' as report_date
+      FROM peoplesoft.hrm_ps_job b
+      LEFT JOIN hive.dtm_hr360.temp_last_action_cwr_quit_daily c
+      ON c.report_date = '{{ report_dt }}'
+         AND b.emplid = c.emplid 
+      WHERE b.job_indicator = 'P'
+        AND b.company = 'VTB' 
+        AND b.setid_jobcode IN ('CN', 'CNTT', 'QLTM', 'SGD', 'TRG', 'TSC', 'TTT')
+        AND b.per_org = 'CWR'
+        AND b.cob_dt = '{{ cob_dt }}'    
+        AND b.effdt = (
+          SELECT MAX(b1.effdt)
+          FROM peoplesoft.hrm_ps_job b1
+          WHERE b.emplid = b1.emplid
+            AND b.cob_dt = b1.cob_dt
+            AND b.empl_rcd = b1.empl_rcd
+            AND CAST(b1.effdt AS string) <= '{{ report_dt }}'
+        )
+        AND b.effseq = (
+          SELECT MAX(b2.effseq)
+          FROM peoplesoft.hrm_ps_job b2
+          WHERE b.emplid = b2.emplid
+            AND b.cob_dt = b2.cob_dt
+            AND b.empl_rcd = b2.empl_rcd
+            AND b2.effdt = b.effdt
+        )
+        AND (b.hr_status = 'A' OR c.emplid IS NOT NULL)
+
+  insert_dim_ps_job_dsnv_daily_cwr_ter_in_month:
+    check_point: 5
+    target_table: hive.dtm_hr360.dim_ps_job_dsnv_daily_cwr_ter_in_month
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    query: |
+      SELECT 
+          b.emplid,
+          b.deptid,
+          b.ibsy_officer_cd,
+          b.jobcode,
+          b.job_entry_dt,
+          b.dept_entry_dt,
+          b.hire_dt,
+          b.Last_Hire_Dt,
+          b.termination_dt,
+          b.effdt,
+          b.empl_rcd,
+          b.effseq,
+          b.contract_num,
+          b.action,
+          b.action_reason,
+          b.hr_status,
+          b.empl_status,
+          b.per_org,
+          b.full_part_time,
+          b.company,
+          b.setid_jobcode,
+          b.business_unit,
+          CASE
+              WHEN ((b.HIRE_DT BETWEEN SUBSTR('{{ report_dt }}',1,8) || '01' AND '{{ report_dt }}') 
+                     OR (b.LAST_HIRE_DT BETWEEN SUBSTR('{{ report_dt }}',1,8) || '01' AND '{{ report_dt }}')) THEN '1'
+              ELSE '0'
+          END as new_hires,
+          '{{ report_dt }}' as report_date        
+      FROM peoplesoft.hrm_ps_job b
+      WHERE b.job_indicator = 'P'
+        AND b.company = 'VTB' 
+        AND b.setid_jobcode IN ('CN', 'CNTT', 'QLTM', 'SGD', 'TRG', 'TSC', 'TTT')
+        AND per_org = 'CWR'
+        AND b.cob_dt = '{{ cob_dt }}'    
+        AND b.effdt = (
+          SELECT MAX(b1.effdt)
+          FROM peoplesoft.hrm_ps_job b1
+          WHERE b.emplid = b1.emplid
+            AND b.cob_dt = b1.cob_dt
+            AND b.empl_rcd = b1.empl_rcd
+            AND CAST(b1.effdt AS string) <= '{{ report_dt }}'
+        )
+        AND b.effseq = (
+          SELECT MAX(b2.effseq)
+          FROM peoplesoft.hrm_ps_job b2
+          WHERE b.emplid = b2.emplid
+            AND b.cob_dt = b2.cob_dt
+            AND b.empl_rcd = b2.empl_rcd
+            AND b2.effdt = b.effdt
+        )
+        AND b.hr_status = 'I'
+        AND b.termination_dt >= SUBSTR('{{ report_dt }}',1,8) || '01'
+        AND NOT EXISTS (
+          SELECT 1 
+          FROM hive.dtm_hr360.dim_ps_job_dsnv_daily_cwr ax 
+          WHERE ax.emplid = b.emplid 
+            AND ax.report_date = '{{ report_dt }}'
+        )
+
+  insert_dim_prior_exp:
+    check_point: 6
+    target_table: hive.dtm_hr360.dim_prior_exp
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    query: |
+      SELECT 
+          emplid AS id_iso, 
+          COUNT(*) AS nb_prior_work,
+          CASE 
+              WHEN COUNT(*) > 0 THEN 1
+              ELSE 0
+          END AS exper,
+          '{{ report_dt }}' AS report_date
+      FROM peoplesoft.hrm_ps_priorwork_exper
+      WHERE cob_dt = '{{ cob_dt }}'
+      GROUP BY emplid
+
+  insert_dim_review_rating_yr_empl:
+    check_point: 7
+    target_table: hive.dtm_hr360.dim_review_rating_yr_empl
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    query: |
+      SELECT DISTINCT 
+          YEAR(period_end_dt) AS yr,
+          emplid,
+          review_rating,
+          '{{ report_dt }}' AS report_date
+      FROM peoplesoft.hrm_ps_ep_appr_sel_vw a
+      WHERE RATING_MODEL = 'DGRT' 
+        AND cob_dt = '{{ cob_dt }}'
+        AND YEAR(period_end_dt) BETWEEN 2019 AND CAST(SUBSTR('{{ cob_dt }}',1,4) AS INT) - 1
+
+  insert_temp_empl_daily:
+    check_point: 8
+    target_table: hive.dtm_hr360.temp_empl_daily
+    save_mode: 'overwrite'
+    save_format: 'iceberg'
+    query: |
+      SELECT  
+          CAST(SUBSTR(a.report_date,1,4) AS INT) AS report_year,
+          CAST(SUBSTR(a.report_date,6,2) AS INT) AS report_month,
+          CASE 
+              WHEN a.report_date = LAST_DAY(a.report_date) THEN 1 -- Last day of month 
+              ELSE 0 -- Not last day of month 
+          END AS last_day_of_month,
+          a.setid_jobcode,
+          SUBSTRING(a.deptid,2,3) AS unitid,
+          a.deptid,
+          a.emplid AS id_iso,
+          c.name,
+          a.ibsy_officer_cd AS post,
+          a.jobcode,
+          c.sex AS gender_id,
+          CASE 
+              WHEN c.sex = 1 THEN 'Nam'
+              WHEN c.sex = 0 THEN 'Nữ'
+          END AS gender,
+          c.birthdate, -- Date of birth
+          ROUND(DATEDIFF(CAST(a.report_date AS DATE), CAST(c.birthdate AS DATE)) / 365.25, 2) AS age,
+          ROUND(DATEDIFF(CAST(a.report_date AS DATE), CAST(c.birthdate AS DATE)) / 30.44, 2) AS age_month,
+          COALESCE(c.highest_educ_lvl, 'NA') AS highest_edu_lvl,
+          CASE 
+              WHEN dpe.exper > 0 THEN 1
+              ELSE 0
+          END AS exper,
+          dse.convert_comprt AS base_salary, -- 20
+          COALESCE(ROUND(hpitn.tenure / 12, 1), 0) AS tenure,
+          a.hire_dt,
+          a.last_hire_dt,
+          a.termination_dt,
+          a.effdt,
+          a.new_hires,
+          a.action,
+          a.action_reason,
+          CASE 
+              WHEN a.action = 'RET' THEN 
+                  ROUND(DATEDIFF(CAST(a.effdt AS DATE), CAST(c.birthdate AS DATE)) / 30.44, 1)
+              ELSE NULL
+          END AS m_retired,
+          CASE 
+              WHEN a.action = 'RET' THEN 
+                  ROUND(DATEDIFF(CAST(a.effdt AS DATE), CAST(c.birthdate AS DATE)) / 30.44 - dr.m_standard_retire, 2)
+              ELSE NULL
+          END AS standard_retired,
+          a.hr_status,
+          a.full_part_time,
+          a.per_org,
+          CONCAT(a.setid_jobcode, '_', a.jobcode) AS bu_setid_jobcode,
+          dp.post_descr, -- NEW
+          dp.manager_staff,
+          CASE 
+              WHEN a.setid_jobcode <> 'CN' THEN 'Trụ sở chính' 
+              ELSE dp.profession 
+          END AS profession,
+          drrye.review_rating, -- 36
+          a.report_date
+      FROM hive.dtm_hr360.dim_ps_job_dsnv_daily_emp a
+      LEFT JOIN peoplesoft.hrm_ps_personal_data c ON a.emplid = c.emplid AND c.cob_dt = '{{ cob_dt }}'
+      LEFT JOIN hive.dtm_hr360.dim_retire dr ON c.sex = dr.gender_id AND YEAR(a.effdt) = dr.yr
+      LEFT JOIN hive.dtm_hr360.dim_position dp ON CONCAT(a.setid_jobcode, a.jobcode) = dp.bu_post_id
+      LEFT JOIN hive.dtm_hr360.dim_salary_empl dse ON a.emplid = dse.emplid AND a.report_date = dse.report_date AND a.report_date >= dse.effdt 
+      LEFT JOIN peoplesoft.hrm_ps_ibsy_thamnien hpitn ON a.emplid = hpitn.

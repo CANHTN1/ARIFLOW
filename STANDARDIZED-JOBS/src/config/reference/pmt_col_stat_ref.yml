@@ -1,0 +1,39 @@
+spark:
+  job_name: std_pmt_col_stat_ref
+source:
+  table: profile.prf_stblestat
+target:
+  table: hive.std.pmt_col_stat_ref
+  write_hist_table: '0'
+  standardized: 0
+
+query:
+  init_sql: |
+    CREATE TABLE hive.std.pmt_col_stat_ref (
+      cob_dt date,
+      status string COMMENT 'Gtm Literal Subscript, Source: STBLESTAT.status',
+      desc string COMMENT 'Description, Source: STBLESTAT.desc',
+      fmdesc string COMMENT 'File Maint Table and Column for Desc, Source: STBLESTAT.fmdesc',
+      change_type string COMMENT 'I/U'
+    )
+    USING iceberg
+    
+  select_sql: |
+    SELECT
+      to_date(cob_dt, 'yyyy-MM-dd') cob_dt,    
+      status,
+      desc,
+      fmdesc
+    FROM
+      profile.prf_stblestat
+    WHERE
+      cob_dt = '{{ cob_dt }}'
+
+columns:
+  - name: cob_dt
+    do_not_compare: 1
+  - name: status
+    do_not_compare: 1
+    primary_key: 1  
+  - name: desc
+  - name: fmdesc

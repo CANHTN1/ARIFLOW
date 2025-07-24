@@ -1,0 +1,44 @@
+spark:
+  job_name: std_depst_act_mstr_scd1
+source:
+  table: profile.prf_proddftd
+target:
+  table: hive.std.depst_prod_mstr
+  hist_table: 
+  write_hist_table: '0'
+  standardized: 0
+query:
+  init_sql_mstr: |
+    CREATE TABLE IF NOT EXISTS hive.std.depst_prod_mstr (
+      cob_dt date COMMENT 'Date of data - prf_proddftd.cob_dt',
+      prod_cls string COMMENT 'Product class code - .cls',
+      prod_grp string COMMENT 'Product group - Name (snake).grp',
+      prod_type string COMMENT 'Product type code - cob_dt.type',
+      currency_cd string COMMENT 'Currency code - prod_cls.crcd',
+      prin_maturity_opt int COMMENT 'Principle maturity option - prod_grp.rencd',
+      prod_des string COMMENT 'Product name - prod_type.des',
+      change_type string COMMENT 'I/U'
+    ) 
+    USING iceberg
+  select_sql: |
+    SELECT 
+      TO_DATE(cob_dt, 'yyyy-MM-dd') AS cob_dt,
+      cls AS prod_cls,
+      grp AS prod_grp,
+      type AS prod_type,
+      crcd AS currency_cd,
+      CAST(rencd AS int) AS prin_maturity_opt,
+      des AS prod_des
+    FROM profile.prf_proddftd a
+    WHERE a.cob_dt = '{{ cob_dt }}'
+columns:
+  - name: cob_dt
+    do_not_compare: 1
+  - name: prod_cls
+  - name: prod_grp
+  - name: prod_type
+    do_not_compare: 1
+    primary_key: 1
+  - name: currency_cd
+  - name: prin_maturity_opt
+  - name: prod_des
