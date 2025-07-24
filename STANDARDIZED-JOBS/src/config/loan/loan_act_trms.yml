@@ -1,0 +1,108 @@
+spark:
+  job_name: std_loan_act_trns
+
+target:
+  table_name: hive.std.loan_act_trns
+  preload: 0
+  write_mode: overwrite
+  query_sql: |
+    select 
+      to_date('{{ cob_dt }}', 'yyyy-MM-dd') as cob_dt,
+      cast(a.cid as long) act_nbr,
+      a.crcd as currency_cd,
+      cast(a.ZIADBAL as decimal(19,2)) leadr_vtb_bal_amt,
+      cast(a.BAL as decimal(19,2)) ldgr_bal_amt,
+      cast(a.ZIADBAL2 as decimal(19,2)) tot_vtb_bal_amt,
+      cast(a.ZBAL as decimal(19,2)) tot_ostd_bal_amt,
+      cast(a.AVLBAL as decimal(19,2)) avail_bal_amt,
+      cast(a.UDBAL as decimal(19,2)) unadv_bal_amt,
+      cast(a.ZBALTOT as decimal(19,2)) dly_tot_bal_amt,
+      cast(a.ZICRBAL as decimal(19,2)) leader_vtb_credit_limit_amt,
+      cast(a.CRLMT as decimal(19,2)) credit_limit_amt,
+      cast(a.DAA as decimal(19,2)) dly_acr_intrst_amt,
+      cast(a.ACR as decimal(19,2)) acr_intrst_amt,
+      cast(a.POAMT as decimal(19,2)) prin_only_pmt_amt,
+      cast(a.PRNRPD as decimal(19,2)) prin_paid_amt,
+      cast(a.PVAR as decimal(19,2)) prin_prepaid_amt,
+      cast(a.TDR as decimal(19,2)) total_rlse_amt,
+      cast(a.PMT as decimal(19,2)) pmt_amt,
+      null as prin_intrst_pmt_amt,
+      cast(a.PRINREC as decimal(19,2)) prin_recvry_amt,
+      cast(a.CUPR as decimal(19,2)) cur_prin_amt,
+      cast(a.CUPR2 as decimal(19,2)) cur_prin2_amt,
+      cast(a.PROVOAMT as decimal(19,2)) provsn_ovr_amt,
+      cast(a.DUPR as decimal(19,2)) tot_prin_due_amt,
+      cast(a.TDUE as decimal(19,2)) tot_due_amt,
+      cast(a.UNAPF as decimal(19,2)) unapl_funds_amt,
+      cast(a.PROVBAL as decimal(19,2)) provsn_bal_amt,
+      cast(a.ZGPROVBAL as decimal(19,2)) gen_provsn_bal_amt,
+      to_date(a.ZGPROVCDT, 'dd/MM/yyyy') as gen_provsn_calc_dt,
+      cast(a.ZGPROVPCT as decimal(10,4)) gen_provsn_bal_pct,
+      cast(a.ZCUPRCO as decimal(19,2)) prin_chrg_off_amt,
+      cast(a.ZCUPRNCO as decimal(19,2)) prin_non_chrg_off_amt,
+      cast(a.ZDUPRCO as decimal(19,2)) prin_ovd_chrg_off_amt,
+      cast(a.ZDUPRNCO as decimal(19,2)) prin_ovd_non_chrg_off_amt,
+      cast(a.ZTDRTFSUB as decimal(19,2)) tf_disburse_amt,
+      cast(a.COLTOT as decimal(19,2)) tot_col_held_amt,
+      cast(a.TOTCOL as decimal(19,2)) tot_col_value_in_tc,
+      cast(a.GTDUE as decimal(19,2)) grand_tot_due_amt,
+      to_date(a.dist1nd, 'dd/MM/yyyy') as next_due_dt,
+      case when a.dist1nd = '{{ cob_dt }}' then -1 
+           else datediff(to_date(a.dist1nd, 'dd/MM/yyyy'), to_date('{{ cob_dt }}', 'yyyy-MM-dd')) 
+      end as ovrdue_days,
+      to_date(a.TLD, 'dd/MM/yyyy') as last_transaction_dt,
+      to_date(a.lpdt, 'dd/MM/yyyy') as last_pmt_dt,
+      to_date(a.fmld, 'dd/MM/yyyy') as last_maintaince_dt
+    from profile.prf_ln a
+    where a.cob_dt = '{{ cob_dt }}'  
+      and a.cpf = '0'
+
+  created_sql: |
+    create table hive.std.loan_act_trns (
+      cob_dt date comment 'Ngày dữ liệu, Source: LN.cob_dt',
+      act_nbr long comment 'Số tài khoản, Source: LN.cid',
+      currency_cd string comment 'Đồng tiền, Source: LN.crcd',
+      leadr_vtb_bal_amt decimal(19,2) comment 'Dư nợ leader/VTB, Source: LN.ZIADBAL',
+      ldgr_bal_amt decimal(19,2) comment 'Dư nợ gốc, Source: LN.BAL',
+      tot_vtb_bal_amt decimal(19,2) comment 'Dư nợ VTB, Source: LN.ZIADBAL2',
+      tot_ostd_bal_amt decimal(19,2) comment 'Outstanding balance, Source: LN.ZBAL',
+      avail_bal_amt decimal(19,2) comment 'Số dư còn lại, Source: LN.AVLBAL',
+      unadv_bal_amt decimal(19,2) comment 'Unadvance balance, Source: LN.UDBAL',
+      dly_tot_bal_amt decimal(19,2) comment 'Daily total balance, Source: LN.ZBALTOT',
+      leader_vtb_credit_limit_amt decimal(19,2) comment 'Hạn mức tín dụng tại Leader/VTB, Source: LN.ZICRBAL',
+      credit_limit_amt decimal(19,2) comment 'Hạn mức tín dụng, Source: LN.CRLMT',
+      dly_acr_intrst_amt decimal(19,2) comment 'Lãi ngày, Source: LN.DAA',
+      acr_intrst_amt decimal(19,2) comment 'Lãi cộng dồn, Source: LN.ACR',
+      prin_only_pmt_amt decimal(19,2) comment 'Total Principal Only Payments, Source: LN.POAMT',
+      prin_paid_amt decimal(19,2) comment 'Principal Repaid, Source: LN.PRNRPD',
+      prin_prepaid_amt decimal(19,2) comment 'Principal Variance (prepaid), Source: LN.PVAR',
+      total_rlse_amt decimal(19,2) comment 'Total Disbursement Amount, Source: LN.TDR',
+      pmt_amt decimal(19,2) comment 'Payment - Current Amount, Source: LN.PMT',
+      prin_intrst_pmt_amt decimal(19,2) comment 'Principal and Interest Payment, Source: LN.PMPI',
+      prin_recvry_amt decimal(19,2) comment 'Principal Recovery, Source: LN.PRINREC',
+      cur_prin_amt decimal(19,2) comment 'Current Principal, Source: LN.CUPR',
+      cur_prin2_amt decimal(19,2) comment 'Current Principal (Computed), Source: LN.CUPR2',
+      provsn_ovr_amt decimal(19,2) comment 'Provision Override Amount, Source: LN.PROVOAMT',
+      tot_prin_due_amt decimal(19,2) comment 'Total Principal Due, Source: LN.DUPR',
+      tot_due_amt decimal(19,2) comment 'Total Due, Source: LN.TDUE',
+      unapl_funds_amt decimal(19,2) comment 'Unapplied Funds, Source: LN.UNAPF',
+      provsn_bal_amt decimal(19,2) comment 'Provision amount, Source: LN.PROVBAL',
+      gen_provsn_bal_amt decimal(19,2) comment 'General provision amount, Source: LN.ZGPROVBAL',
+      gen_provsn_calc_dt date comment 'General provision calculation date, Source: LN.ZGPROVCDT',
+      gen_provsn_bal_pct decimal(10,4) comment 'General Provision percentage, Source: LN.ZGPROVPCT',
+      prin_chrg_off_amt decimal(19,2) comment 'Current Principal Charge-off amount, Source: LN.ZCUPRCO',
+      prin_non_chrg_off_amt decimal(19,2) comment 'Current Principal Non Charge-off amount, Source: LN.ZCUPRNCO',
+      prin_ovd_chrg_off_amt decimal(19,2) comment 'Overdue Principal Charge-off amount, Source: LN.ZDUPRCO',
+      prin_ovd_non_chrg_off_amt decimal(19,2) comment 'Overdue Principal Non Charge-off amount, Source: LN.ZDUPRNCO',
+      tf_disburse_amt decimal(19,2) comment 'Total Disbursement for TF Subcom, Source: LN.ZTDRTFSUB',
+      tot_col_held_amt decimal(19,2) comment 'Total Collateral Held Against Loan, Source: LN.COLTOT',
+      tot_col_value_in_tc decimal(19,2) comment 'Total Collateral Value In Loan Currency, Source: LN.TOTCOL',
+      grand_tot_due_amt decimal(19,2) comment 'Grand Total Due (TDUE + LCHG + MCND + TOTVATDUE - UNAPF), Source: LN.GTDUE',
+      next_due_dt date comment 'Distribution 1 Next Due, Source: LN.dist1nd',
+      ovrdue_days int comment 'Overdue days (next_due_dt - cob_dt)',
+      last_transaction_dt date comment 'Ngày GD cuối cùng',
+      last_pmt_dt date comment 'Ngày trả nợ gần nhất',
+      last_maintaince_dt date comment 'Ngày cập nhật gần nhất'
+    )
+    using iceberg
+    partitioned by (days(cob_dt))

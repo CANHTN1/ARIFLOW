@@ -1,0 +1,222 @@
+spark:
+  job_name: std_loan_act_mstr_scd1
+
+source:
+  table: profile.prf_ln
+
+target:
+  table: hive.std.loan_act_mstr
+  hist_table: hive.std.loan_act_mstr_hist
+  write_hist_table: '1'
+  standardized: 1
+
+query:
+  init_sql_mstr: |
+    create table if not exists hive.std.loan_act_mstr (
+      cob_dt date comment 'Ngày cập nhật gần nhất',
+      act_nbr long comment 'Số tài khoản',
+      act_rltns_cd string comment 'Relationship role code',
+      cus_cif_nbr long comment 'Số CIF quản lý hợp đồng',
+      act_title string comment 'Title khoản vay',
+      auto_pmt_due_cd int comment 'Auto payment code',
+      auto_pmt_retry int comment 'Auto payment retry',
+      auto_pmt_retry_day int comment 'Auto payment retry day',
+      auto_pmt_act_nbr long comment 'Auto payment account number',
+      faci_act_nbr long comment 'Facility account number',
+      currency_cd string comment 'Đồng tiền',
+      credit_limit_amt_in_tc decimal(19,2) comment 'Hạn mức tín dụng',
+      first_pmt_dt date comment 'First payment date',
+      org_disburse_dt date comment 'Original disburse date',
+      first_disburse_dt date comment 'First disbursement date',
+      late_charge_calc_method string comment 'Phương thức tính lãi phạt trả chậm',
+      asset_cls_manual_update int comment 'Cờ cập nhật nhóm nợ',
+      special_debt_flag int comment 'Khoản vay đặc biệt',
+      channel_cd string comment 'Kênh',
+      promt_intrst_rate decimal(9,2) comment 'Lãi suất ưu đãi',
+      promt_intrst_rate_end_dt date comment 'Ngày hết hạn lãi suất ưu đãi',
+      nominal_interst_rate decimal(9,2) comment 'Lãi suất danh nghĩa',
+      intrst_rate decimal(9,2) comment 'Lãi suất thực tế',
+      intrst_change_freq string comment 'Tần suất thay đổi lãi suất',
+      inter_company_cd string comment 'Mã kh quốc tế',
+      syndicated_sold_flag int comment 'Đồng tài trợ hoặc bán nợ',
+      syndicated_flag int comment 'Cờ đồng tài trợ',
+      vtb_percentage decimal(5,3) comment 'Tỷ lệ tại VTB',
+      trust_prod1_flag int comment 'No risk flag',
+      trust_prod2_flag int comment '100% risk flag',
+      online_disburse_flag int comment 'Cờ GNOL',
+      online_disburse_status string comment 'Trạng thái GNOL',
+      credit_oriention_cd string comment 'Mục đích tín dụng',
+      intrst_exemption_flag int comment 'Cờ miễn giảm lãi',
+      tf_sub_cmnt_flag int comment 'TF Sub Commitment Flag',
+      transaction_id string comment 'Transaction ID',
+      refnum string comment 'Reference number',
+      dist1fre string comment 'Tần suất trả gốc',
+      intfre string comment 'Tần suất trả lãi',
+      index string comment 'Index (cấu hình lãi suất)',
+      company_cd string comment 'Công ty',
+      glsc string comment 'GL group',
+      glcat1 string comment 'Kỳ hạn theo SP',
+      glcat2 string comment 'GL cat 2',
+      glcat3 string comment 'GL cat 3',
+      glcat4 string comment 'GL cat 4',
+      glcat5 string comment 'GL cat 5',
+      glcat6 string comment 'GL cat 6',
+      glcat7 string comment 'GL cat 7',
+      glcat8 string comment 'GL cat 8',
+      glcat9 string comment 'GL cat 9',
+      glcat10 string comment 'GL cat 10',
+      pmt_calc_method string comment 'Payment Calculation Method',
+      dealer_discount_flag string comment 'Dealer Discount Flag',
+      closed_dt date comment 'Date Account Closed',
+      overdraft_cd string comment 'Overdraft Option',
+      ptcp_act_flag int comment 'Participation Account Flag',
+      change_type string comment 'I/U'
+    ) 
+    using iceberg
+    partitioned by (bucket(4, act_nbr))
+
+  select_sql: |
+    select
+      to_date(cob_dt, 'yyyy-MM-dd') cob_dt,
+      cast(cid as long) act_nbr,
+      a.acnrelc as act_rltns_cd,
+      cast(a.acn as long) cus_cif_nbr,
+      a.title1 as act_title,
+      cast(a.ALPDUE as int) auto_pmt_due_cd,
+      cast(a.ALPRTY as int) auto_pmt_retry,
+      cast(a.ALPRTYD as int) auto_pmt_retry_day,
+      cast(a.AUPTCID as long) auto_pmt_act_nbr,
+      cast(a.ccl as long) faci_act_nbr,
+      a.crcd as currency_cd,
+      cast(a.CRLMT as decimal(19,2)) credit_limit_amt_in_tc,
+      to_date(a.DFP, 'dd/MM/yyyy') as first_pmt_dt,
+      to_date(a.odd, 'dd/MM/yyyy') as org_disburse_dt,
+      to_date(a.odd2, 'dd/MM/yyyy') as first_disburse_dt,
+      a.zpopt2 as late_charge_calc_method,
+      cast(a.zdarcupd as int) asset_cls_manual_update,
+      cast(a.zfrzflg as int) special_debt_flag,
+      a.zchanid as channel_cd,
+      cast(a.trate as decimal(9,2)) promt_intrst_rate,
+      to_date(a.trexd, 'dd/MM/yyyy') as promt_intrst_rate_end_dt,
+      cast(a.irn as decimal(9,2)) nominal_interst_rate,
+      case when to_date(a.trexd, 'dd/MM/yyyy') > to_date(cob_dt, 'yyyy-MM-dd') 
+           then cast(a.trate as decimal(9,2)) 
+           else cast(a.irn as decimal(9,2)) 
+      end intrst_rate,
+      a.intfre as intrst_change_freq,
+      a.zcomcode as inter_company_cd,
+      cast(a.ZSLDFLG as int) syndicated_sold_flag,
+      cast(a.zsyndflg as int) syndicated_flag,
+      cast(a.zvtbpct as decimal(5,3)) vtb_percentage,
+      cast(a.ztrust1 as int) trust_prod1_flag,
+      cast(a.ztrust2 as int) trust_prod2_flag,
+      cast(a.zaldolflg as int) online_disburse_flag,
+      a.zaldolstat as online_disburse_status,
+      a.zcredorient as credit_oriention_cd,
+      cast(a.zinex as int) intrst_exemption_flag,
+      cast(a.ztfsubcom as int) tf_sub_cmnt_flag,
+      a.ztrid as transaction_id,
+      a.refnum as refnum,
+      a.dist1fre as dist1fre,
+      a.intfre as intfre,
+      a.index as index,
+      a.co as company_cd,
+      a.glsc as glsc,
+      a.glcat1 as glcat1,
+      a.glcat2 as glcat2,
+      a.glcat3 as glcat3,
+      a.glcat4 as glcat4,
+      a.glcat5 as glcat5,
+      a.glcat6 as glcat6,
+      a.glcat7 as glcat7,
+      a.glcat8 as glcat8,
+      a.glcat9 as glcat9,
+      a.glcat10 as glcat10,
+      a.pcm as pmt_calc_method,
+      a.dlrp as dealer_discount_flag,
+      to_date(a.dtc, 'dd/MM/yyyy') as closed_dt,
+      a.odo as overdraft_cd,
+      cast(a.PFLG as int) ptcp_act_flag
+    from profile.prf_ln a
+    where a.cob_dt = '{{ cob_dt }}' 
+      and cpf = '0'
+      and (a.stat <> '4' or to_date(a.dtc, 'dd/MM/yyyy') >= to_date('{{ cob_dt }}', 'yyyy-MM-dd'))
+
+columns:
+  - name: cob_dt
+    do_not_compare: 1
+  - name: act_nbr
+    do_not_compare: 1
+    primary_key: 1
+  - name: act_rltns_cd
+  - name: cus_cif_nbr
+  - name: act_title
+  - name: auto_pmt_due_cd
+  - name: auto_pmt_retry
+  - name: auto_pmt_retry_day
+  - name: auto_pmt_act_nbr
+  - name: faci_act_nbr
+  - name: currency_cd
+  - name: credit_limit_amt_in_tc
+  - name: first_pmt_dt
+  - name: org_disburse_dt
+  - name: first_disburse_dt
+  - name: late_charge_calc_method
+  - name: asset_cls_manual_update
+  - name: special_debt_flag
+  - name: channel_cd
+  - name: promt_intrst_rate
+  - name: promt_intrst_rate_end_dt
+  - name: nominal_interst_rate
+  - name: intrst_rate
+  - name: intrst_change_freq
+  - name: inter_company_cd
+  - name: syndicated_sold_flag
+  - name: syndicated_flag
+  - name: vtb_percentage
+  - name: trust_prod1_flag
+  - name: trust_prod2_flag
+  - name: online_disburse_flag
+  - name: online_disburse_status
+  - name: credit_oriention_cd
+  - name: intrst_exemption_flag
+  - name: tf_sub_cmnt_flag
+  - name: transaction_id
+    null_if_empty: 1
+  - name: refnum
+    null_if_empty: 1
+  - name: dist1fre
+  - name: intfre
+  - name: index
+  - name: company_cd
+    null_if_empty: 1
+  - name: glsc
+    null_if_empty: 1
+  - name: glcat1
+    null_if_empty: 1
+  - name: glcat2
+    null_if_empty: 1
+  - name: glcat3
+    null_if_empty: 1
+  - name: glcat4
+    null_if_empty: 1
+  - name: glcat5
+    null_if_empty: 1
+  - name: glcat6
+    null_if_empty: 1
+  - name: glcat7
+    null_if_empty: 1
+  - name: glcat8
+    null_if_empty: 1
+  - name: glcat9
+    null_if_empty: 1
+  - name: glcat10
+    null_if_empty: 1
+  - name: pmt_calc_method
+    null_if_empty: 1
+  - name: dealer_discount_flag
+    null_if_empty: 1
+  - name: closed_dt
+  - name: overdraft_cd
+    null_if_empty: 1
+  - name: ptcp_act_flag

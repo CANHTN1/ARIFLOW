@@ -1,0 +1,136 @@
+spark:
+  job_name: std_loan_act_dtls_scd2
+
+stagging:
+  table_name: hive.std.tmp_loan_act_dtls
+  preload_sql: "truncate table hive.std.tmp_loan_act_dtls"
+  query_sql: |
+    select * from hive.std.loan_act_dtls where is_cur = 1
+
+target:
+  table_name: hive.std.loan_act_dtls
+  surrogate_key: loan_act_dtls_sr_key
+
+query:
+  select_sql: |
+    select 
+      cast(substr(replace('{{ cob_dt }}', '-', ''), 3, 6) || a.cid as long) loan_act_dtls_sr_key,
+      to_date('{{ cob_dt }}', 'yyyy-MM-dd') as eff_strt_dt,
+      to_date('9999-12-31', 'yyyy-MM-dd') as eff_end_dt,
+      1 as is_cur,
+      to_date(a.cob_dt, 'yyyy-MM-dd') as cob_dt,
+      cast(a.cid as long) act_nbr,
+      a.boo as branch_cd,
+      cast(a.stat as int) status,
+      to_date(a.odt, 'dd/MM/yyyy') as created_dt,
+      to_date(a.mdt, 'dd/MM/yyyy') as marturity_dt,
+      to_date(a.zomdt, 'dd/MM/yyyy') as org_marturity_dt,
+      a.trm as act_term_cd,
+      cast(a.trmd as int) act_term_days,
+      cast(coalesce(cast(regexp_extract(trm, '(\\d+)Y', 1) as INT), 0) * 12 + 
+                  coalesce(cast(regexp_extract(trm, '(\\d+)M', 1) as INT), 0) + 
+                  coalesce(cast(regexp_extract(trm, '(\\d+)D', 1) as INT), 0) / 30 as decimal(8, 2)) act_term_month,
+      a.cc as cost_center,
+      a.grp as prod_grp,
+      a.type as prod_type,
+      a.subt as prod_sub_type,
+      cast(a.REVF as int) revolve_flag,
+      a.zsicsub as industry_cd,
+      a.zpurcd as purpose_cd,
+      a.off as officier_cd,
+      cast(a.zsecured as int) secured_flag,
+      a.zccrel as cost_center_rltns,
+      cast(a.zdel10f as int) overdue_10d_flag,
+      cast(a.ztfmargin as decimal(19, 2)) tf_margin_amt,
+      cast(a.ztfmdext as int) tf_maturity_date_ext_cnt,
+      cast(a.zmdec2 as int) maturity_date_ext_cnt,
+      cast(a.EXTAMT as decimal(19, 2)) total_ext_pmt_amt,
+      cast(a.EXTTOT as int) total_ext_pmt_cnt,
+      cast(a.EXTTOTSC as int) sch_ext_pmt_cnt,
+      to_date(a.EXTLDT, 'dd/MM/yyyy') as last_ext_dt,
+      cast(a.cof as int) charge_off_flag,
+      a.darcls as asset_cls,
+      a.darcovr as asset_cls_ovr
+    from profile.prf_ln a
+    where a.cob_dt = '{{ cob_dt }}'  
+      and a.cpf = '0'
+      and (a.stat <> '4' or to_date(a.dtc, 'dd/MM/yyyy') >= to_date('{{ cob_dt }}', 'yyyy-MM-dd'))
+
+created_sql: |
+  create table hive.std.loan_act_dtls (
+    loan_act_dtls_sr_key long comment 'Surrogate key, Source: cob_dt yymmdd || cid',
+    eff_strt_dt date comment 'Effective date, Source: LN.cob_dt',
+    eff_end_dt date comment 'Effective end date, Source: LN.',
+    is_cur int comment 'Is current record, Source: LN.',
+    cob_dt date comment 'cob_dt, Source: LN.cob_dt',
+    act_nbr long comment 'Account number, Source: LN.cid',
+    branch_cd string comment 'Branch code, Source: LN.boo',
+    status int comment 'Account status, Source: LN.stat',
+    created_dt date comment 'Account creation date, Source: LN.odt',
+    marturity_dt date comment 'Maturity date, Source: LN.mdt',
+    org_marturity_dt date comment 'Original maturity date, Source: LN.zomdt',
+    act_term_cd string comment 'Term code, Source: LN.trm',
+    act_term_days int comment 'Term in days, Source: LN.trmd',
+    act_term_month decimal(6, 2) comment 'Term in months, Source: decode from term',
+    cost_center string comment 'Cost center, Source: LN.cc',
+    prod_grp string comment 'Product group, Source: LN.grp',
+    prod_type string comment 'Product code, Source: LN.type',
+    prod_sub_type string comment 'Sub-product code, Source: LN.subt',
+    revolve_flag int comment 'Revolve flag, Source: LN.REVF',
+    industry_cd string comment 'Industry code level 3 (loan), Source: LN.ZSICSUB',
+    purpose_cd string comment 'CTTD code, Source: LN.ZPURCD',
+    officier_cd string comment 'Loan officer code, Source: LN.off',
+    secured_flag int comment 'Secured flag, Source: LN.zsecured',
+    cost_center_rltns string comment 'Cost center relationship, Source: LN.zccrel',
+    overdue_10d_flag int comment 'Overdue flag within 10 days, Source: LN.zdel10f',
+    tf_margin_amt decimal(19, 2) comment 'TF Margin Deposit, Source: LN.ztfmargin',
+    tf_maturity_date_ext_cnt int comment 'TF Loan Maturity Date Extension Counter, Source: LN.ztfmdext',
+    maturity_date_ext_cnt int comment 'Maturity Date extension Counter, Source: LN.zmdec2',
+    total_ext_pmt_amt decimal(19, 2) comment 'Total amount of extension payments, Source: LN.EXTAMT',
+    total_ext_pmt_cnt int comment 'Total number of extension payments, Source: LN.EXTTOT',
+    sch_ext_pmt_cnt int comment 'Number of schedule extensions, Source: LN.EXTTOTSC',
+    last_ext_dt date comment 'Last extension date, Source: LN.EXTLDT',
+    charge_off_flag int comment 'Charge off flag, Source: LN.cof',
+    asset_cls string comment 'Asset class, Source: LN.DARCLS',
+    asset_cls_ovr string comment 'Asset class override, Source: LN.DARCOVR'
+  )
+  using iceberg
+  partitioned by (bucket(4, act_nbr))
+
+columns:
+  - name: act_nbr
+    native_key: 1
+    do_not_compare: 1
+  - name: branch_cd
+  - name: status
+  - name: created_dt
+  - name: marturity_dt
+  - name: org_marturity_dt
+  - name: act_term_cd
+  - name: act_term_days
+  - name: act_term_month
+  - name: cost_center
+    null_if_empty: 1
+  - name: prod_grp
+  - name: prod_type
+  - name: prod_sub_type
+    null_if_empty: 1
+  - name: revolve_flag
+  - name: industry_cd
+  - name: purpose_cd
+    null_if_empty: 1
+  - name: officier_cd
+    null_if_empty: 1
+  - name: secured_flag
+  - name: cost_center_rltns
+  - name: overdue_10d_flag
+  - name: tf_margin_amt
+  - name: tf_maturity_date_ext_cnt
+  - name: maturity_date_ext_cnt
+  - name: total_ext_pmt_amt
+  - name: total_ext_pmt_cnt
+  - name: sch_ext_pmt_cnt
+  - name: last_ext_dt
+  - name: charge_off_flag
+  - name: asset_cls
+  - name: asset_cls_ovr

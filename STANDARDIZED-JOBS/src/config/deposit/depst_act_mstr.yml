@@ -1,0 +1,285 @@
+spark:
+  job_name: std_depst_act_mstr_scd1
+source:
+  table: profile.prf_cif
+target:
+  table: hive.std.depst_act_mstr
+  hist_table: hive.std.depst_act_mstr_hist
+  write_hist_table: '1'
+  standardized: 1
+query:
+  init_sql_mstr: |
+    CREATE TABLE IF NOT EXISTS hive.std.depst_act_mstr (
+      cob_dt date COMMENT 'Ngày cập nhật gần nhất, Source: cob_dt',
+      act_nbr long COMMENT 'Số tài khoản, Source: cid',
+      cus_cif_nbr long COMMENT 'Số CIF KH, Source: acn',
+      act_title String COMMENT 'title, Source: title1',
+      prod_grp string COMMENT 'Product Group, Source: grp',
+      prod_type string COMMENT 'Product Type, Source: type',
+      branch_cd string COMMENT 'Branch of Ownership, Source: boo',
+      currency_cd string COMMENT 'Currency Code, Source: crcd',
+      cost_center string COMMENT 'Cost Center, Source: cc',
+      init_src string COMMENT 'Initial Deposit Source, Source: initdsrc',
+      pkg_cd string COMMENT 'Package Name, Source: package',
+      ib_pkg_cd string COMMENT 'Internet Banking Package ID, Source: zibpkgid',
+      officer_cd string COMMENT 'Primary Account Officer Code, Source: off',
+      manage_user string COMMENT 'Deposit Manager, Source: zmgr',
+      act_term_cd string COMMENT 'Term, Source: trm',
+      act_term_days int COMMENT 'Account Term - Days, Source: trmd',
+      act_term_month decimal(6,2) COMMENT 'Account term months, Source: ',
+      conv_act_nbr string COMMENT 'Converted Account Number, Source: convacn',
+      glsc string COMMENT 'General Ledger Set Code, Source: glsc',
+      channel_id string COMMENT 'Channel ID, Source: zchanid',
+      channel_user_id string COMMENT 'Channel User ID, Source: zchuid',
+      zkyc string COMMENT 'KYC Type, Source: zkyc',
+      zkyc_type string COMMENT 'KYC Type, Source: zkyctyp',
+      lucky_nbr_flag int COMMENT 'Lucky number account, Source: zluckacct',
+      ref_user_id string COMMENT 'Invited/Reference ID, Source: zinvid',
+      promt_intrst_rate decimal(9,2) COMMENT 'Promotional Rate, Source: trate',
+      promt_intrst_rate_end_dt date COMMENT 'Promotional Rate - Expiration Date, Source: trexd',
+      promt_intrst_rate_strt_dt date COMMENT 'Promotional Rate - Start Date, Source: ztrstd',
+      nominal_interst_rate decimal(9,2) COMMENT 'Nominal Int/Div Rate, Source: irn',
+      intrst_rate decimal(9,2) COMMENT 'Interest rate, Source: ',
+      created_dt date COMMENT 'Date Account Opened, Source: odt',
+      marturity_dt date COMMENT 'Account Maturity Date, Source: mdt',
+      closed_dt date COMMENT 'Date Account Closed, Source: dtc',
+      prin_maturity_opt int COMMENT 'Principal Maturity Option, Source: rencd',
+      status int COMMENT 'Status, Source: stat',
+      rest_flag int COMMENT 'Restriction Flag, Source: rflg',
+      org_amt decimal(19,2) COMMENT 'Original Amount, Source: org',
+      passbook_serial_nbr string COMMENT 'Passbook Serial Number, Source: pbksn',
+      overdraft_opt int COMMENT 'Overdraft Option, Source: odo',
+      high_vol_act_flag int COMMENT 'High Volume Account Flag, Source: highvol',
+      intrst_trsfr_act_nbr long COMMENT 'Int/Div Transfer Account, Source: itrf',
+      intrst_opt int COMMENT 'Int/Div Disbursement Option, Source: iopt',
+      intrst_posting_freq String COMMENT 'Interest Posting Frequency, Source: ipf',
+      rollover_trsfr_act_nbr long COMMENT 'Rollover Transfer Account, Source: racn',
+      intrst_avail_opt int COMMENT 'Available Interest Option, Source: iaf',
+      intrst_maturiy_trsfr_act_nbr long COMMENT 'Interest Maturity Internal Transfer a/c, Source: intmatita',
+      intrst_maturiy_opt int COMMENT 'Interest Maturity Option, Source: imo',
+      zisva int COMMENT 'CONVACN:Null=Migrated;1=Alias;2=Virtual, Source: zisva',
+      zvavtb string COMMENT 'Virtual Account manage by VTB or not, Source: zvavtb',
+      overdraft_pmt_flag int COMMENT 'Loan O/D Repayment Flag, Source: odsf',
+      first_depst_dt date COMMENT 'Date of First Deposit, Source: dfdep',
+      cost_center_rltns string COMMENT 'Account-Cost Center Relationship, Source: zccrel',
+      act_rltns_cd string COMMENT 'Account Relationship role code, Source: acnrelc',
+      hold_flag int COMMENT 'Permanence hold flag, Source: phld',
+      hold_amt decimal(19,2) COMMENT 'Amount on Hold, Source: hldamt',
+      last_renew_dt date COMMENT 'Date Last Renewed, Source: dlr',
+      renew_cnt int COMMENT 'Number of Times Renewed, Source: ntr',
+      change_type string COMMENT 'I/U'
+    ) 
+    USING iceberg
+    PARTITIONED BY (bucket(8, act_nbr))
+
+  init_sql_mstr_hist: |
+    CREATE TABLE IF NOT EXISTS hive.std.depst_act_mstr_hist (
+      cob_dt date COMMENT 'Ngày cập nhật gần nhất, Source: cob_dt',
+      act_nbr long COMMENT 'Số tài khoản, Source: cid',
+      cus_cif_nbr long COMMENT 'Số CIF KH, Source: acn',
+      act_title String COMMENT 'title, Source: title1',
+      prod_grp string COMMENT 'Product Group, Source: grp',
+      prod_type string COMMENT 'Product Type, Source: type',
+      branch_cd string COMMENT 'Branch of Ownership, Source: boo',
+      currency_cd string COMMENT 'Currency Code, Source: crcd',
+      cost_center string COMMENT 'Cost Center, Source: cc',
+      init_src string COMMENT 'Initial Deposit Source, Source: initdsrc',
+      pkg_cd string COMMENT 'Package Name, Source: package',
+      ib_pkg_cd string COMMENT 'Internet Banking Package ID, Source: zibpkgid',
+      officer_cd string COMMENT 'Primary Account Officer Code, Source: off',
+      manage_user string COMMENT 'Deposit Manager, Source: zmgr',
+      act_term_cd string COMMENT 'Term, Source: trm',
+      act_term_days int COMMENT 'Account Term - Days, Source: trmd',
+      act_term_month decimal(6,2) COMMENT 'Account term months, Source: ',
+      conv_act_nbr string COMMENT 'Converted Account Number, Source: convacn',
+      glsc string COMMENT 'General Ledger Set Code, Source: glsc',
+      channel_id string COMMENT 'Channel ID, Source: zchanid',
+      channel_user_id string COMMENT 'Channel User ID, Source: zchuid',
+      zkyc string COMMENT 'KYC Type, Source: zkyc',
+      zkyc_type string COMMENT 'KYC Type, Source: zkyctyp',
+      lucky_nbr_flag int COMMENT 'Lucky number account, Source: zluckacct',
+      ref_user_id string COMMENT 'Invited/Reference ID, Source: zinvid',
+      promt_intrst_rate decimal(9,2) COMMENT 'Promotional Rate, Source: trate',
+      promt_intrst_rate_end_dt date COMMENT 'Promotional Rate - Expiration Date, Source: trexd',
+      promt_intrst_rate_strt_dt date COMMENT 'Promotional Rate - Start Date, Source: ztrstd',
+      nominal_interst_rate decimal(9,2) COMMENT 'Nominal Int/Div Rate, Source: irn',
+      intrst_rate decimal(9,2) COMMENT 'Interest rate, Source: ',
+      created_dt date COMMENT 'Date Account Opened, Source: odt',
+      marturity_dt date COMMENT 'Account Maturity Date, Source: mdt',
+      closed_dt date COMMENT 'Date Account Closed, Source: dtc',
+      prin_maturity_opt int COMMENT 'Principal Maturity Option, Source: rencd',
+      status int COMMENT 'Status, Source: stat',
+      rest_flag int COMMENT 'Restriction Flag, Source: rflg',
+      org_amt decimal(19,2) COMMENT 'Original Amount, Source: org',
+      passbook_serial_nbr string COMMENT 'Passbook Serial Number, Source: pbksn',
+      overdraft_opt int COMMENT 'Overdraft Option, Source: odo',
+      high_vol_act_flag int COMMENT 'High Volume Account Flag, Source: highvol',
+      intrst_trsfr_act_nbr long COMMENT 'Int/Div Transfer Account, Source: itrf',
+      intrst_opt int COMMENT 'Int/Div Disbursement Option, Source: iopt',
+      intrst_posting_freq String COMMENT 'Interest Posting Frequency, Source: ipf',
+      rollover_trsfr_act_nbr long COMMENT 'Rollover Transfer Account, Source: racn',
+      intrst_avail_opt int COMMENT 'Available Interest Option, Source: iaf',
+      intrst_maturiy_trsfr_act_nbr long COMMENT 'Interest Maturity Internal Transfer a/c, Source: intmatita',
+      intrst_maturiy_opt int COMMENT 'Interest Maturity Option, Source: imo',
+      zisva int COMMENT 'CONVACN:Null=Migrated;1=Alias;2=Virtual, Source: zisva',
+      zvavtb string COMMENT 'Virtual Account manage by VTB or not, Source: zvavtb',
+      overdraft_pmt_flag int COMMENT 'Loan O/D Repayment Flag, Source: odsf',
+      first_depst_dt date COMMENT 'Date of First Deposit, Source: dfdep',
+      cost_center_rltns string COMMENT 'Account-Cost Center Relationship, Source: zccrel',
+      act_rltns_cd string COMMENT 'Account Relationship role code, Source: acnrelc',
+      hold_flag int COMMENT 'Permanence hold flag, Source: phld',
+      hold_amt decimal(19,2) COMMENT 'Amount on Hold, Source: hldamt',
+      last_renew_dt date COMMENT 'Date Last Renewed, Source: dlr',
+      renew_cnt int COMMENT 'Number of Times Renewed, Source: ntr',
+      change_type string COMMENT 'I/U'
+    ) 
+    USING iceberg
+    PARTITIONED BY (days(cob_dt))
+
+  select_sql: |
+    SELECT 
+      TO_DATE('{{ cob_dt }}', 'yyyy-MM-dd') AS cob_dt,
+      CAST(cid AS long) AS act_nbr,
+      CAST(a.acn AS long) AS cus_cif_nbr,
+      a.title1 AS act_title,
+      a.grp AS prod_grp,
+      a.type AS prod_type,
+      a.boo AS branch_cd,
+      a.crcd AS currency_cd,
+      a.cc AS cost_center,
+      a.initdsrc AS init_src,
+      a.package AS pkg_cd,
+      a.zibpkgid AS ib_pkg_cd,
+      a.off AS officer_cd,
+      a.zmgr AS manage_user,
+      a.trm AS act_term_cd,
+      CAST(a.trmd AS int) AS act_term_days,
+      CAST(COALESCE(CAST(REGEXP_EXTRACT(trm, '(\\d+)Y', 1) AS INT), 0) * 12 +
+                COALESCE(CAST(REGEXP_EXTRACT(trm, '(\\d+)M', 1) AS INT), 0) + 
+                COALESCE(CAST(REGEXP_EXTRACT(trm, '(\\d+)D', 1) AS INT), 0) / 30 AS decimal(8,2)) AS act_term_month,
+      a.convacn AS conv_act_nbr,
+      a.glsc AS glsc,
+      a.zchanid AS channel_id,
+      a.zchuid AS channel_user_id,
+      a.zkyc AS zkyc,
+      a.zkyctyp AS zkyc_type,
+      CAST(a.zluckacct AS int) AS lucky_nbr_flag,
+      a.zinvid AS ref_user_id,
+      CAST(a.trate AS decimal(9,2)) AS promt_intrst_rate,
+      TO_DATE(a.trexd, 'dd/MM/yyyy') AS promt_intrst_rate_end_dt,
+      TO_DATE(a.ztrstd, 'dd/MM/yyyy') AS promt_intrst_rate_strt_dt,
+      CAST(a.irn AS decimal(9,2)) AS nominal_interst_rate,
+      CASE 
+        WHEN TO_DATE(a.trexd, 'dd/MM/yyyy') > TO_DATE(cob_dt, 'yyyy-MM-dd') 
+        THEN CAST(a.trate AS decimal(9,2)) 
+        ELSE CAST(a.irn AS decimal(9,2)) 
+      END AS intrst_rate,
+      TO_DATE(a.odt, 'dd/MM/yyyy') AS created_dt,
+      TO_DATE(a.mdt, 'dd/MM/yyyy') AS marturity_dt,
+      TO_DATE(a.dtc, 'dd/MM/yyyy') AS closed_dt,
+      CAST(a.rencd AS int) AS prin_maturity_opt,
+      CAST(a.stat AS int) AS status,
+      CAST(a.rflg AS int) AS rest_flag,
+      CAST(a.org AS decimal(19,2)) AS org_amt,
+      a.pbksn AS passbook_serial_nbr,
+      CAST(a.odo AS int) AS overdraft_opt,
+      CAST(a.highvol AS int) AS high_vol_act_flag,
+      CAST(a.itrf AS long) AS intrst_trsfr_act_nbr,
+      CAST(a.iopt AS int) AS intrst_opt,
+      a.ipf AS intrst_posting_freq,
+      CAST(a.racn AS long) AS rollover_trsfr_act_nbr,
+      CAST(a.iaf AS int) AS intrst_avail_opt,
+      CAST(a.intmatita AS long) AS intrst_maturiy_trsfr_act_nbr,
+      CAST(a.imo AS int) AS intrst_maturiy_opt,
+      CAST(a.zisva AS int) AS zisva,
+      a.zvavtb AS zvavtb,
+      CAST(a.odsf AS int) AS overdraft_pmt_flag,
+      TO_DATE(a.dfdep, 'dd/MM/yyyy') AS first_depst_dt,
+      a.zccrel AS cost_center_rltns,
+      a.acnrelc AS act_rltns_cd,
+      CAST(a.phld AS int) AS hold_flag,
+      CAST(a.hldamt AS decimal(19,2)) AS hold_amt,
+      TO_DATE(a.dlr, 'dd/MM/yyyy') AS last_renew_dt,
+      CAST(a.ntr AS int) AS renew_cnt
+    FROM profile.prf_dep a
+    WHERE a.cob_dt = '{{ cob_dt }}'
+
+columns:
+  - name: cob_dt
+    do_not_compare: 1
+  - name: act_nbr
+    do_not_compare: 1
+    primary_key: 1
+  - name: cus_cif_nbr
+  - name: act_title
+  - name: prod_grp
+  - name: prod_type
+  - name: branch_cd
+  - name: currency_cd
+  - name: cost_center
+  - name: init_src
+  - name: pkg_cd
+    null_if_empty: 1
+  - name: ib_pkg_cd
+    null_if_empty: 1
+  - name: officer_cd
+    null_if_empty: 1
+  - name: manage_user
+    null_if_empty: 1
+  - name: act_term_cd
+    null_if_empty: 1
+  - name: act_term_days
+  - name: act_term_month
+  - name: conv_act_nbr
+    null_if_empty: 1
+  - name: glsc
+    null_if_empty: 1
+  - name: channel_id
+    null_if_empty: 1
+  - name: channel_user_id
+    null_if_empty: 1
+  - name: zkyc
+    null_if_empty: 1
+  - name: zkyc_type
+    null_if_empty: 1
+  - name: lucky_nbr_flag
+  - name: ref_user_id
+    null_if_empty: 1
+  - name: promt_intrst_rate
+  - name: promt_intrst_rate_end_dt
+  - name: promt_intrst_rate_strt_dt
+  - name: nominal_interst_rate
+  - name: intrst_rate
+  - name: created_dt
+  - name: marturity_dt
+  - name: closed_dt
+  - name: prin_maturity_opt
+  - name: status
+  - name: rest_flag
+  - name: org_amt
+  - name: passbook_serial_nbr
+    null_if_empty: 1
+  - name: overdraft_opt
+  - name: high_vol_act_flag
+  - name: intrst_trsfr_act_nbr
+  - name: intrst_opt
+  - name: intrst_posting_freq
+    null_if_empty: 1
+  - name: rollover_trsfr_act_nbr
+  - name: intrst_avail_opt
+  - name: intrst_maturiy_trsfr_act_nbr
+  - name: intrst_maturiy_opt
+  - name: zisva
+    null_if_empty: 1
+  - name: zvavtb
+    null_if_empty: 1
+  - name: overdraft_pmt_flag
+  - name: first_depst_dt
+  - name: cost_center_rltns
+    null_if_empty: 1
+  - name: act_rltns_cd
+    null_if_empty: 1
+  - name: hold_flag
+  - name: hold_amt
+  - name: last_renew_dt
+  - name: renew_cnt

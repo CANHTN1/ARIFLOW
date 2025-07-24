@@ -1,0 +1,45 @@
+spark:
+  job_name: std_svc_prov_ref
+source:
+  table: profile.prf_zutblspv
+target:
+  table: hive.std.svc_prov_ref
+  write_hist_table: '0'
+  standardized: 0
+
+query:
+  init_sql: |
+    CREATE TABLE hive.std.svc_prov_ref (
+      cob_dt date,
+      svc_prov string COMMENT 'Service Provider, Source: ZUTBLSPV.sprov',
+      svc_prov_desc string COMMENT 'Service Provider Description, Source: ZUTBLSPV.sprovd',
+      bic string COMMENT 'Bank identification code, Source: ZUTBLSPV.bic',
+      bank_cd string COMMENT 'IBPS Bilateral bank code, Source: ZUTBLSPV.bankcd',
+      swift_cd string COMMENT 'Swift code, Source: ZUTBLSPV.swiftcd',
+      change_type string COMMENT 'I/U'
+    )
+    USING iceberg
+    
+  select_sql: |
+    SELECT
+      to_date(cob_dt, 'yyyy-MM-dd') cob_dt,    
+      sprov svc_prov,
+      sprovd svc_prov_desc,
+      bic,
+      bankcd bank_cd,
+      swiftcd swift_cd
+    FROM
+      profile.prf_zutblspv
+    WHERE
+      cob_dt = '{{ cob_dt }}'
+
+columns:
+  - name: cob_dt
+    do_not_compare: 1
+  - name: svc_prov
+    do_not_compare: 1
+    primary_key: 1  
+  - name: svc_prov_desc
+  - name: bic
+  - name: bank_cd
+  - name: swift_cd

@@ -1,0 +1,21 @@
+tables:
+  aml_gwgkursk_icbv:
+    number: 1
+    jdbc_conn_id: jdbc-sybaseiq-staging
+    table: aml1_gwgkursk_icbv
+    metastore_table: aml.aml_gwgkursk_icbv
+    save_mode: 'overwrite'
+    save_format: 'orc'
+    repartition_num: '1'
+    query: |
+      SELECT
+        TRIM(kundnr) AS kundnr,
+        cust_segments,
+        risk_level,
+        updtd_by,
+        updtd_dtm,
+        cob_dt
+      FROM
+      aml1_gwgkursk_icbv
+      WHERE
+      cob_dt = '{{ cob_dt }}'

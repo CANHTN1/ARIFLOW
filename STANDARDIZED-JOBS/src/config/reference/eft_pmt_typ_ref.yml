@@ -1,0 +1,84 @@
+spark:
+  job_name: std_eft_pmt_typ_ref_scd1
+source:
+  table: profile.prf_ctblefttype
+target:
+  table: hive.std.eft_pmt_typ_ref
+  write_hist_table: '0'
+  standardized: 0
+
+query:
+  init_sql: |
+    CREATE TABLE hive.std.eft_pmt_typ_ref (
+      cob_dt date,
+      eft_typ string COMMENT 'EFT Type, Source: CTBLEFTTYPE.key',
+      pay_typ string COMMENT 'Payment type, Source: CTBLEFTTYPE.zrefvar',
+      desc string COMMENT 'Description, Source: CTBLEFTTYPE.desc',
+      fmdesc string COMMENT 'File Maint Table and Column for Desc, Source: CTBLEFTTYPE.fmdesc',
+      currency_cd string COMMENT 'Currency Code, Source: CTBLEFTTYPE.crcd',
+      external_transaction_cd string COMMENT 'External Transaction Code, Source: CTBLEFTTYPE.etc',
+      fin_transaction_typ int COMMENT 'Financial Transaction Type, Source: CTBLEFTTYPE.fincl',
+      eft_sys_typ string COMMENT 'EFT System Type, Source: CTBLEFTTYPE.stbleft',
+      gl_in long COMMENT 'General Ledger Account Incoming, Source: CTBLEFTTYPE.glin',
+      gl_out long COMMENT 'General Ledger Account Outgoing, Source: CTBLEFTTYPE.glout',
+      dflt_pmt_method string COMMENT 'Default Payment Method, Source: CTBLEFTTYPE.paymetdft',
+      overdraft_protection int COMMENT 'Invoke Overdraft Protection, Source: CTBLEFTTYPE.odp',
+      reversal_transaction int COMMENT 'Reversal Transaction, Source: CTBLEFTTYPE.rev',
+      ibps_low_value_limit decimal(19,2) COMMENT 'Limit for IBPS low value transaction, Source: CTBLEFTTYPE.zlimit',
+      si_transaction_limit decimal(19,2) COMMENT 'SI Transaction limit, Source: CTBLEFTTYPE.ztxnlimit',
+      times_to_retry int COMMENT 'Times To Retry, Source: CTBLEFTTYPE.tries',
+      receive_branch int COMMENT 'Receiving Branch, Source: CTBLEFTTYPE.zrcvbr',
+      state_bank_settle_act long COMMENT 'State Bank Settlement Account, Source: CTBLEFTTYPE.zibpscid',
+      change_type string COMMENT 'I/U'
+    )
+    USING iceberg
+    
+  select_sql: |
+    SELECT
+      to_date(cob_dt, 'yyyy-MM-dd') cob_dt,    
+      key eft_typ,
+      zrefvar pay_typ,
+      desc,
+      fmdesc,
+      crcd currency_cd,
+      etc external_transaction_cd,
+      CAST(fincl AS int) fin_transaction_typ,
+      stbleft eft_sys_typ,
+      CAST(glin AS long) gl_in,
+      CAST(glout AS long) gl_out,
+      paymetdft dflt_pmt_method,
+      CAST(odp AS int) overdraft_protection,
+      CAST(rev AS int) reversal_transaction,
+      CAST(zlimit AS decimal(19,2)) ibps_low_value_limit,
+      CAST(ztxnlimit AS decimal(19,2)) si_transaction_limit,
+      CAST(tries AS int) times_to_retry,
+      CAST(zrcvbr AS int) receive_branch,
+      CAST(zibpscid AS long) state_bank_settle_act
+    FROM
+      profile.prf_ctblefttype
+    WHERE
+      cob_dt = '{{ cob_dt }}'
+
+columns:
+  - name: cob_dt
+    do_not_compare: 1
+  - name: eft_typ
+    do_not_compare: 1
+    primary_key: 1  
+  - name: currency_cd
+  - name: desc
+  - name: external_transaction_cd
+  - name: fin_transaction_typ
+  - name: fmdesc
+  - name: gl_in
+  - name: gl_out
+  - name: overdraft_protection
+  - name: dflt_pmt_method
+  - name: reversal_transaction
+  - name: eft_sys_typ
+  - name: times_to_retry
+  - name: state_bank_settle_act
+  - name: ibps_low_value_limit
+  - name: receive_branch
+  - name: pay_typ
+  - name: si_transaction_limit
