@@ -1,5 +1,5 @@
-from airflow import DAG
-from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+from airflow import DAG    #Import lớp DAG là thành phần cốt lõi để định nghĩa một quy trình công việc (workflow) trong Airflow.
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator  #dùng để gửi một công việc (job) đến một cụm Apache Spark. Đây là "người thực thi" chính cho việc xử lý dữ liệu.
 from airflow.hooks.base import BaseHook
 from airflow.models import Variable
 from airflow.utils.task_group import TaskGroup
